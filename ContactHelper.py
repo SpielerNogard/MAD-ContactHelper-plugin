@@ -12,7 +12,7 @@ from threading import Thread
 import cv2 as cv
 import numpy as np
 from datetime import datetime
-
+from mapadroid.utils.logging import LoggerEnums, get_logger, get_origin_logger
 class ContactHelper(mapadroid.utils.pluginBase.Plugin):
     """This plugin is just the identity function: it returns the argument
     """
@@ -55,76 +55,100 @@ class ContactHelper(mapadroid.utils.pluginBase.Plugin):
                                                        self.pluginname, self.description, self.author, self.url,
                                                        description, self.version)
 
-    def log(self,info):
-        self._mad['logger'].info("[ContactHelper]: "+str(info))
+    def log(self,info,origin):
+        origin_logger = get_origin_logger(self._madcontrol._logger, origin=origin)
+        origin_logger.info("ContactHelper: "+str(info))
 
-    def take_screenshot(self,origin):
-        self.log("Making Screenshot from "+origin)
-        link = self.my_mad_link+'/take_screenshot?origin='+str(origin)+"&adb=False"
-        r = requests.get(link)
-        self.log(r)
-        time.sleep(10)
+        #self._mad['logger'].info("[ContactHelper]: "+str(info))
+
+    def take_screen(self,origin):
+        self.log("creating screen",origin)
+        self._madcontrol.generate_screenshot(origin)
         currentDirectory = os.getcwd()
         temp_directory = currentDirectory+"/temp/"
         image_directory = currentDirectory+"/plugins/ContactHelper/Bilder/"
         device_image ="screenshot_"+ origin +".jpg"
         originscreen = image_directory+device_image
-        shutil.copy2(temp_directory+device_image, image_directory+device_image)
-        self.log(originscreen+" copied")
-    
-    def swipe_screen(self,origin):
-        self.log("Swiping screen on "+origin)
-        link = self.my_mad_link+'/swipe_screenshot?origin='+str(origin)+"&adb=False&clickx=60&clickxe=10&clicky=10&clickye=10"
-        r = requests.get(link)
-        self.log(r)
-        time.sleep(10)
+        try:
+            shutil.copy2(temp_directory+device_image, image_directory+device_image)
+            self.log(originscreen+" copied",origin)
+        except:
+            self.log("Cant copy file",origin)
+
+
+    def swipe(self,origin):
+        real_click_x = 616
+        real_click_xe = 169
+        real_click_y = 658
+        real_click_ye = 658
+        self.log("Input Swipe",origin)
+        temp_comm = self._madcontrol._ws_server.get_origin_communicator(origin)
+        temp_comm.touch_and_hold(int(real_click_x), int(real_click_y), int(real_click_xe), int(real_click_ye))
 
     def click_on_screen(self,origin,real_x,real_y):
-        x = int(real_x/7.2)
-        y = int(real_y/12.8)
-        self.log("Clicking on "+origin)
-        link = self.my_mad_link+'/click_screenshot?origin='+str(origin)+"&adb=False&clickx="+str(x)+"&clicky="+str(y)
-        r = requests.get(link)
-        self.log(r)
-        time.sleep(10)
-
-    def create_mad_link(self):
-        self.my_mad_link = "http://"+str(self._mad_user)+":"+str(self._mad_password)+"@"+str(self._mad_adress)+":"+str(self._mad_port)
-
+        self.log("Clicking on "+origin,origin)
+        temp_comm = self._madcontrol._ws_server.get_origin_communicator(origin)
+        temp_comm.click(int(real_x), int(real_y))
+        
     def ContactHelper(self):
-        time.sleep(120)
+        time.sleep(60)
         while True:
-            devices = ["Leveln1"]
-            currentDirectory = os.getcwd()
-            image_directory = currentDirectory+"/plugins/ContactHelper/Bilder/"
-            for device in self._devices:
-                self.take_screenshot(device)
-                device_image ="screenshot_"+ device +".jpg"
-                originscreen = image_directory+device_image
-                pos = self.Watcher.find_pos("contact",originscreen)
-                if pos != None:
-                    name = pos[0]
-                    coords = pos[1]
-                    val = pos[2]
-                    x = coords[0]
-                    y = coords[1]
-                    if val >= 0.8:
-                        self.log("Found Contact Screen")
-                        self.swipe_screen(device)
-                        self.take_screenshot(device)
-                        self.handle_contact_screen(device)
-                    else:
-                        self.log("Contact Screen not found")
+            try:
+                devices = ["Leveln1"]
+                currentDirectory = os.getcwd()
+                image_directory = currentDirectory+"/plugins/ContactHelper/Bilder/"
+                for device in self._devices:
+                    self.take_screen(device)
+                    device_image ="screenshot_"+ device +".jpg"
+                    originscreen = image_directory+device_image
+                    pos = self.Watcher.find_pos("contact",originscreen)
+                    if pos != None:
+                        name = pos[0]
+                        coords = pos[1]
+                        val = pos[2]
+                        x = coords[0]
+                        y = coords[1]
+                        if val >= 0.8:
+                            self.log("Found Contact Screen",device)
+                            self.swipe(device)
+                            #self.swipe_screen(device)
+                            self.take_screen(device)
+                            #self.handle_next_screen(device)
+                            
+                        else:
+                            self.log("Contact Screen not found",device)
+
+                    self.handle_contact_screen(device)
+
+            except:
+                self.log("Error")
 
 
 
 
-            time.sleep(1)
+    def handle_next_screen(self,device):
+        currentDirectory = os.getcwd()
+        image_directory = currentDirectory+"/plugins/ContactHelper/Bilder/"
+        self.take_screen(device)
+        device_image ="screenshot_"+ device +".jpg"
+        originscreen = image_directory+device_image
+        pos = self.Watcher.find_pos("next",originscreen)
+        name = pos[0]
+        coords = pos[1]
+        val = pos[2]
+        x = coords[0]
+        y = coords[1]
+        if val >= 0.8:
+            self.click_on_screen(device,x,y)
+            
+
+        self.take_screen(device)
+
 
     def handle_contact_screen(self,device):
         currentDirectory = os.getcwd()
         image_directory = currentDirectory+"/plugins/ContactHelper/Bilder/"
-        self.take_screenshot(device)
+        self.take_screen(device)
         device_image ="screenshot_"+ device +".jpg"
         originscreen = image_directory+device_image
         pos = self.Watcher.find_pos("maybelater",originscreen)
@@ -135,9 +159,9 @@ class ContactHelper(mapadroid.utils.pluginBase.Plugin):
         y = coords[1]
         if val >= 0.8:
             self.click_on_screen(device,x,y)
-            time.sleep(10)
+            
 
-        self.take_screenshot(device)
+        self.take_screen(device)
 
 
     def mswThread(self):
@@ -159,8 +183,9 @@ class ContactHelper(mapadroid.utils.pluginBase.Plugin):
         # load your stuff now
         
         #shutil.copy2('/src/dir/file.ext', '/dst/dir/newname.ext') # complete target filename given
-
-        self._workers: dict = {}
+        
+        self._madcontrol = self._mad["madmin"]
+        self._madcontrol = self._madcontrol.control
 
         self._mad_adress = self._pluginconfig.get("plugin", "mad_adress", fallback='localhost')
         self._mad_port = self._pluginconfig.get("plugin", "mad_port", fallback='5000')
@@ -170,8 +195,7 @@ class ContactHelper(mapadroid.utils.pluginBase.Plugin):
         
         self._devices = self._devices.replace(", ",",")
         self._devices = self._devices.split(",")
-        self.log(self._devices)
-        self.create_mad_link()
+        
 
 
 
@@ -199,7 +223,7 @@ class watcher(object):
         self._mad = mad
         self.root_directory = root_directory
         self.templates = []
-        self.template_names = ["contact","maybelater"]
+        self.template_names = ["contact","maybelater","next"]
         self.load_templates()
 
     def log(self,info):
