@@ -6,4 +6,4 @@ mad_port = #your mad port
 mad_user = #your mad username
 mad_password = #your mad password 
 
-devices = Leveln1, account2 #just input the name sorgin your devices
+devices = Leveln1, account2 #just input the name orgin your devices
