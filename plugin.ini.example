@@ -1,0 +1,9 @@
+[plugin]
+active = true
+
+mad_adress = ip adress of your mad server
+mad_port = your mad port
+mad_user = your mad username
+mad_password = your mad password 
+
+devices = Leveln1, Leveln2 ... just input the names og your devices
