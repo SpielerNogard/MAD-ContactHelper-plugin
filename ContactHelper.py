@@ -56,39 +56,51 @@ class ContactHelper(mapadroid.utils.pluginBase.Plugin):
                                                        description, self.version)
 
     def log(self,info,origin):
-        origin_logger = get_origin_logger(self._madcontrol._logger, origin=origin)
-        origin_logger.info("ContactHelper: "+str(info))
+        try:
+            origin_logger = get_origin_logger(self._madcontrol._logger, origin=origin)
+            origin_logger.info("ContactHelper: "+str(info))
 
-        #self._mad['logger'].info("[ContactHelper]: "+str(info))
+            #self._mad['logger'].info("[ContactHelper]: "+str(info))
+        except:
+            print("Nothing")
 
     def take_screen(self,origin):
-        self.log("creating screen",origin)
-        self._madcontrol.generate_screenshot(origin)
-        currentDirectory = os.getcwd()
-        temp_directory = currentDirectory+"/temp/"
-        image_directory = currentDirectory+"/plugins/ContactHelper/Bilder/"
-        device_image ="screenshot_"+ origin +".jpg"
-        originscreen = image_directory+device_image
         try:
-            shutil.copy2(temp_directory+device_image, image_directory+device_image)
-            self.log(originscreen+" copied",origin)
+            self.log("creating screen",origin)
+            self._madcontrol.generate_screenshot(origin)
+            currentDirectory = os.getcwd()
+            temp_directory = currentDirectory+"/temp/"
+            image_directory = currentDirectory+"/plugins/ContactHelper/Bilder/"
+            device_image ="screenshot_"+ origin +".jpg"
+            originscreen = image_directory+device_image
+            try:
+                shutil.copy2(temp_directory+device_image, image_directory+device_image)
+                self.log(originscreen+" copied",origin)
+            except:
+                self.log("Cant copy file",origin)
         except:
-            self.log("Cant copy file",origin)
+            print("Nothing")
 
 
     def swipe(self,origin):
-        real_click_x = 616
-        real_click_xe = 169
-        real_click_y = 658
-        real_click_ye = 658
-        self.log("Input Swipe",origin)
-        temp_comm = self._madcontrol._ws_server.get_origin_communicator(origin)
-        temp_comm.touch_and_hold(int(real_click_x), int(real_click_y), int(real_click_xe), int(real_click_ye))
+        try:
+            real_click_x = 616
+            real_click_xe = 169
+            real_click_y = 658
+            real_click_ye = 658
+            self.log("Input Swipe",origin)
+            temp_comm = self._madcontrol._ws_server.get_origin_communicator(origin)
+            temp_comm.touch_and_hold(int(real_click_x), int(real_click_y), int(real_click_xe), int(real_click_ye))
+        except:
+            print("Nothing")
 
     def click_on_screen(self,origin,real_x,real_y):
-        self.log("Clicking on "+origin,origin)
-        temp_comm = self._madcontrol._ws_server.get_origin_communicator(origin)
-        temp_comm.click(int(real_x), int(real_y))
+        try:
+            self.log("Clicking on "+origin,origin)
+            temp_comm = self._madcontrol._ws_server.get_origin_communicator(origin)
+            temp_comm.click(int(real_x), int(real_y))
+        except:
+            print("Nothing")
         
     def ContactHelper(self):
         time.sleep(60)
@@ -121,7 +133,7 @@ class ContactHelper(mapadroid.utils.pluginBase.Plugin):
                     self.handle_contact_screen(device)
 
             except:
-                self.log("Error")
+                print("Fehler")
 
 
 
@@ -187,10 +199,7 @@ class ContactHelper(mapadroid.utils.pluginBase.Plugin):
         self._madcontrol = self._mad["madmin"]
         self._madcontrol = self._madcontrol.control
 
-        self._mad_adress = self._pluginconfig.get("plugin", "mad_adress", fallback='localhost')
-        self._mad_port = self._pluginconfig.get("plugin", "mad_port", fallback='5000')
-        self._mad_user = self._pluginconfig.get("plugin", "mad_user", fallback='root')
-        self._mad_password = self._pluginconfig.get("plugin", "mad_password", fallback='')
+       
         self._devices = self._pluginconfig.get("plugin", "devices", fallback='')
         
         self._devices = self._devices.replace(", ",",")
